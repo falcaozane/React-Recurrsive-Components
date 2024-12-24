@@ -6,7 +6,7 @@ export default async function Page() {
 
   return (
     <div className="p-8">
-      <TreeView folders={folders} />
+      <TreeView initialFolders={folders} />
     </div>
   )
 }

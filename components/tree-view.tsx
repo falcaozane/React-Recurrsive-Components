@@ -11,19 +11,22 @@ import {
   ContextMenuTrigger,
 } from '@/components/ui/context-menu'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { createFolder, deleteFolder, renameFolder } from '@/actions/folder-actions'
+import { createFolder, deleteFolder, renameFolder, getFolders } from '@/actions/folder-actions'
 import type { Folder } from '@prisma/client'
 
 interface TreeNodeProps {
   folder: Folder
   allFolders: Folder[]
   level: number
+  onFolderUpdate: () => Promise<void>
 }
 
-function TreeNode({ folder, allFolders, level }: TreeNodeProps) {
+function TreeNode({ folder, allFolders, level, onFolderUpdate }: TreeNodeProps) {
   const [isExpanded, setIsExpanded] = React.useState(false)
   const [isRenaming, setIsRenaming] = React.useState(false)
   const [newName, setNewName] = React.useState(folder.name)
+  const [isCreatingSubfolder, setIsCreatingSubfolder] = React.useState(false)
+  const [newSubfolderName, setNewSubfolderName] = React.useState('')
 
   const childFolders = allFolders.filter((f) => f.parentId === folder.id)
   const hasChildren = childFolders.length > 0
@@ -33,10 +36,20 @@ function TreeNode({ folder, allFolders, level }: TreeNodeProps) {
   const handleRename = async () => {
     await renameFolder(folder.id, newName)
     setIsRenaming(false)
+    onFolderUpdate()
   }
 
   const handleDelete = async () => {
     await deleteFolder(folder.id)
+    onFolderUpdate()
+  }
+
+  const handleCreateSubfolder = async () => {
+    await createFolder(newSubfolderName, folder.id)
+    setIsCreatingSubfolder(false)
+    setNewSubfolderName('')
+    setIsExpanded(true)
+    onFolderUpdate()
   }
 
   return (
@@ -77,12 +90,30 @@ function TreeNode({ folder, allFolders, level }: TreeNodeProps) {
             <Edit2 className="mr-2 h-4 w-4" />
             Rename
           </ContextMenuItem>
+          <ContextMenuItem onClick={() => setIsCreatingSubfolder(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Create Subfolder
+          </ContextMenuItem>
           <ContextMenuItem onClick={handleDelete}>
             <Trash2 className="mr-2 h-4 w-4" />
             Delete
           </ContextMenuItem>
         </ContextMenuContent>
       </ContextMenu>
+      {isCreatingSubfolder && (
+        <div className="flex items-center mt-1" style={{ paddingLeft: `${(level + 1) * 16}px` }}>
+          <Input
+            value={newSubfolderName}
+            onChange={(e) => setNewSubfolderName(e.target.value)}
+            onBlur={() => setIsCreatingSubfolder(false)}
+            onKeyDown={(e) => e.key === 'Enter' && handleCreateSubfolder()}
+            className="h-6 w-40 mr-2"
+            placeholder="New subfolder name"
+            autoFocus
+          />
+          <Button onClick={handleCreateSubfolder} size="sm">Create</Button>
+        </div>
+      )}
       {isExpanded && hasChildren && (
         <div>
           {childFolders.map((childFolder) => (
@@ -91,6 +122,7 @@ function TreeNode({ folder, allFolders, level }: TreeNodeProps) {
               folder={childFolder}
               allFolders={allFolders}
               level={level + 1}
+              onFolderUpdate={onFolderUpdate}
             />
           ))}
         </div>
@@ -100,20 +132,28 @@ function TreeNode({ folder, allFolders, level }: TreeNodeProps) {
 }
 
 interface TreeViewProps {
-  folders: Folder[]
+  initialFolders: Folder[]
 }
 
-export function TreeView({ folders }: TreeViewProps) {
+export function TreeView({ initialFolders }: TreeViewProps) {
+  const [folders, setFolders] = React.useState(initialFolders)
   const [newFolderName, setNewFolderName] = React.useState('')
+
   const rootFolders = folders.filter((folder) => folder.parentId === null)
 
   const handleCreateFolder = async () => {
     await createFolder(newFolderName, null)
     setNewFolderName('')
+    updateFolders()
+  }
+
+  const updateFolders = async () => {
+    const updatedFolders = await getFolders()
+    setFolders(updatedFolders)
   }
 
   return (
-    <div className="w-64 border rounded-lg p-4">
+    <div className="w-full border rounded-lg p-4">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold">Folders</h2>
         <Dialog>
@@ -139,7 +179,7 @@ export function TreeView({ folders }: TreeViewProps) {
       </div>
       <div className="space-y-1">
         {rootFolders.map((folder) => (
-          <TreeNode key={folder.id} folder={folder} allFolders={folders} level={0} />
+          <TreeNode key={folder.id} folder={folder} allFolders={folders} level={0} onFolderUpdate={updateFolders} />
         ))}
       </div>
     </div>
