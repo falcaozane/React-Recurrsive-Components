@@ -30,6 +30,11 @@ export async function renameFolder(id: string, name: string) {
   revalidatePath('/')
 }
 
-export async function getFolders() {
-  return db.folder.findMany()
+export async function getFolders(): Promise<Folder[]> {
+  const folders = await db.folder.findMany()
+  return folders.map((folder) => ({
+    ...folder,
+    children: [],
+  }))
 }
+
