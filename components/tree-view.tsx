@@ -1,6 +1,6 @@
 'use client'
 
-import * as React from 'react'
+import {useState,} from 'react'
 import { ChevronRight, ChevronDown, FolderIcon, Plus, Trash2, Edit2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/context-menu'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { createFolder, deleteFolder, renameFolder, getFolders } from '@/actions/folder-actions'
-import type { Folder } from '@prisma/client'
+import type { Folder } from '@/types/folder'
 
 interface TreeNodeProps {
   folder: Folder
@@ -22,11 +22,11 @@ interface TreeNodeProps {
 }
 
 function TreeNode({ folder, allFolders, level, onFolderUpdate }: TreeNodeProps) {
-  const [isExpanded, setIsExpanded] = React.useState(false)
-  const [isRenaming, setIsRenaming] = React.useState(false)
-  const [newName, setNewName] = React.useState(folder.name)
-  const [isCreatingSubfolder, setIsCreatingSubfolder] = React.useState(false)
-  const [newSubfolderName, setNewSubfolderName] = React.useState('')
+  const [isExpanded, setIsExpanded] = useState(false)
+  const [isRenaming, setIsRenaming] = useState(false)
+  const [newName, setNewName] = useState(folder.name)
+  const [isCreatingSubfolder, setIsCreatingSubfolder] = useState(false)
+  const [newSubfolderName, setNewSubfolderName] = useState('')
 
   const childFolders = allFolders.filter((f) => f.parentId === folder.id)
   const hasChildren = childFolders.length > 0
@@ -136,8 +136,8 @@ interface TreeViewProps {
 }
 
 export function TreeView({ initialFolders }: TreeViewProps) {
-  const [folders, setFolders] = React.useState(initialFolders)
-  const [newFolderName, setNewFolderName] = React.useState('')
+  const [folders, setFolders] = useState(initialFolders)
+  const [newFolderName, setNewFolderName] = useState('')
 
   const rootFolders = folders.filter((folder) => folder.parentId === null)
 
