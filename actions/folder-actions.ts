@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { db } from '@/lib/db'
-import type { Folder } from '@prisma/client'
+//import type { Folder } from '@prisma/client'
 
 export async function createFolder(name: string, parentId: string | null) {
   const folder = await db.folder.create({
@@ -33,4 +33,3 @@ export async function renameFolder(id: string, name: string) {
 export async function getFolders() {
   return db.folder.findMany()
 }
-
