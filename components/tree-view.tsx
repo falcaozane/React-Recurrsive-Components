@@ -102,23 +102,16 @@ function TreeNode({ folder, allFolders, level, onFolderUpdate }: TreeNodeProps) 
       </ContextMenu>
       {isCreatingSubfolder && (
         <div className="flex items-center mt-1" style={{ paddingLeft: `${(level + 1) * 16}px` }}>
-          <div className="flex items-center mt-1" style={{ paddingLeft: `${(level + 1) * 16}px` }}>
-              <Input
-                value={newSubfolderName}
-                onChange={(e) => setNewSubfolderName(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleCreateSubfolder()}
-                className="h-6 w-40 mr-2"
-                placeholder="New subfolder name"
-                autoFocus
-              />
-              <Button
-                onMouseDown={(e) => e.preventDefault()} // Prevent onBlur from being triggered
-                onClick={handleCreateSubfolder}
-                size="sm"
-              >
-                Create
-              </Button>
-          </div>
+          <Input
+            value={newSubfolderName}
+            onChange={(e) => setNewSubfolderName(e.target.value)}
+            onBlur={() => setIsCreatingSubfolder(false)}
+            onKeyDown={(e) => e.key === 'Enter' && handleCreateSubfolder()}
+            className="h-6 w-40 mr-2"
+            placeholder="New subfolder name"
+            autoFocus
+          />
+          <Button onClick={handleCreateSubfolder} size="sm">Create</Button>
         </div>
       )}
       {isExpanded && hasChildren && (
