@@ -1,56 +1,73 @@
 'use client'
-
-import {useState,} from 'react'
-import { ChevronRight, ChevronDown, FolderIcon, Plus, Trash2, Edit2 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import React, { useState } from 'react';
+import { ChevronRight, ChevronDown, FolderIcon, Plus, Trash2, Edit2, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuTrigger,
-} from '@/components/ui/context-menu'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { createFolder, deleteFolder, renameFolder, getFolders } from '@/actions/folder-actions'
-import type { Folder } from '@/types/folder'
+} from '@/components/ui/context-menu';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import type { Folder } from '@/types/folder';
+import { createFolder, deleteFolder, renameFolder, getFolders } from '@/actions/folder-actions';
 
 interface TreeNodeProps {
-  folder: Folder
-  allFolders: Folder[]
-  level: number
-  onFolderUpdate: () => Promise<void>
+  folder: Folder;
+  allFolders: Folder[];
+  level: number;
+  onFolderUpdate: () => Promise<void>;
 }
 
 function TreeNode({ folder, allFolders, level, onFolderUpdate }: TreeNodeProps) {
-  const [isExpanded, setIsExpanded] = useState(false)
-  const [isRenaming, setIsRenaming] = useState(false)
-  const [newName, setNewName] = useState(folder.name)
-  const [isCreatingSubfolder, setIsCreatingSubfolder] = useState(false)
-  const [newSubfolderName, setNewSubfolderName] = useState('')
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [newName, setNewName] = useState(folder.name);
+  const [isCreatingSubfolder, setIsCreatingSubfolder] = useState(false);
+  const [newSubfolderName, setNewSubfolderName] = useState('');
 
-  const childFolders = allFolders.filter((f) => f.parentId === folder.id)
-  const hasChildren = childFolders.length > 0
+  const childFolders = allFolders.filter((f) => f.parentId === folder.id);
+  const hasChildren = childFolders.length > 0;
 
-  const handleToggle = () => setIsExpanded(!isExpanded)
+  const handleToggle = () => setIsExpanded(!isExpanded);
 
   const handleRename = async () => {
-    await renameFolder(folder.id, newName)
-    setIsRenaming(false)
-    onFolderUpdate()
-  }
+    if (newName.trim()) {
+      await renameFolder(folder.id, newName);
+      setIsRenaming(false);
+      onFolderUpdate();
+    }
+  };
 
   const handleDelete = async () => {
-    await deleteFolder(folder.id)
-    onFolderUpdate()
-  }
+    await deleteFolder(folder.id);
+    onFolderUpdate();
+  };
 
   const handleCreateSubfolder = async () => {
-    await createFolder(newSubfolderName, folder.id)
-    setIsCreatingSubfolder(false)
-    setNewSubfolderName('')
-    setIsExpanded(true)
-    onFolderUpdate()
-  }
+    if (newSubfolderName.trim()) {
+      await createFolder(newSubfolderName, folder.id);
+      setIsCreatingSubfolder(false);
+      setNewSubfolderName('');
+      setIsExpanded(true);
+      onFolderUpdate();
+    }
+  };
+
+  const handleSubfolderKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleCreateSubfolder();
+    } else if (e.key === 'Escape') {
+      setIsCreatingSubfolder(false);
+      setNewSubfolderName('');
+    }
+  };
+
+  const cancelSubfolderCreation = () => {
+    setIsCreatingSubfolder(false);
+    setNewSubfolderName('');
+  };
 
   return (
     <div className="select-none">
@@ -101,17 +118,29 @@ function TreeNode({ folder, allFolders, level, onFolderUpdate }: TreeNodeProps) 
         </ContextMenuContent>
       </ContextMenu>
       {isCreatingSubfolder && (
-        <div className="flex items-center mt-1" style={{ paddingLeft: `${(level + 1) * 16}px` }}>
+        <div className="flex items-center gap-2 mt-1" style={{ paddingLeft: `${(level + 1) * 16}px` }}>
           <Input
             value={newSubfolderName}
             onChange={(e) => setNewSubfolderName(e.target.value)}
-            onBlur={() => setIsCreatingSubfolder(false)}
-            onKeyDown={(e) => e.key === 'Enter' && handleCreateSubfolder()}
-            className="h-6 w-40 mr-2"
+            onKeyDown={handleSubfolderKeyDown}
+            className="h-6 w-40"
             placeholder="New subfolder name"
             autoFocus
           />
-          <Button onClick={handleCreateSubfolder} size="sm">Create</Button>
+          <Button 
+            onClick={handleCreateSubfolder} 
+            size="sm"
+            disabled={!newSubfolderName.trim()}
+          >
+            Create
+          </Button>
+          <Button
+            onClick={cancelSubfolderCreation}
+            size="sm"
+            variant="ghost"
+          >
+            <X className="h-4 w-4" />
+          </Button>
         </div>
       )}
       {isExpanded && hasChildren && (
@@ -128,35 +157,39 @@ function TreeNode({ folder, allFolders, level, onFolderUpdate }: TreeNodeProps) 
         </div>
       )}
     </div>
-  )
+  );
 }
 
 interface TreeViewProps {
-  initialFolders: Folder[]
+  initialFolders: Folder[];
 }
 
 export function TreeView({ initialFolders }: TreeViewProps) {
-  const [folders, setFolders] = useState(initialFolders)
-  const [newFolderName, setNewFolderName] = useState('')
+  const [folders, setFolders] = useState(initialFolders);
+  const [newFolderName, setNewFolderName] = useState('');
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  const rootFolders = folders.filter((folder) => folder.parentId === null)
+  const rootFolders = folders.filter((folder) => folder.parentId === null);
 
   const handleCreateFolder = async () => {
-    await createFolder(newFolderName, null)
-    setNewFolderName('')
-    updateFolders()
-  }
+    if (newFolderName.trim()) {
+      await createFolder(newFolderName, null);
+      setNewFolderName('');
+      setIsDialogOpen(false);
+      updateFolders();
+    }
+  };
 
   const updateFolders = async () => {
-    const updatedFolders = await getFolders()
-    setFolders(updatedFolders)
-  }
+    const updatedFolders = await getFolders();
+    setFolders(updatedFolders);
+  };
 
   return (
     <div className="w-full border rounded-lg p-4">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold">Folders</h2>
-        <Dialog>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button variant="outline" size="icon">
               <Plus className="h-4 w-4" />
@@ -171,18 +204,29 @@ export function TreeView({ initialFolders }: TreeViewProps) {
                 placeholder="Folder name"
                 value={newFolderName}
                 onChange={(e) => setNewFolderName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleCreateFolder()}
               />
-              <Button onClick={handleCreateFolder}>Create</Button>
+              <Button 
+                onClick={handleCreateFolder}
+                disabled={!newFolderName.trim()}
+              >
+                Create
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
       </div>
       <div className="space-y-1">
         {rootFolders.map((folder) => (
-          <TreeNode key={folder.id} folder={folder} allFolders={folders} level={0} onFolderUpdate={updateFolders} />
+          <TreeNode
+            key={folder.id}
+            folder={folder}
+            allFolders={folders}
+            level={0}
+            onFolderUpdate={updateFolders}
+          />
         ))}
       </div>
     </div>
-  )
+  );
 }
-
