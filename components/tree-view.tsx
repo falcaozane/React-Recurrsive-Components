@@ -13,6 +13,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { createFolder, deleteFolder, renameFolder, getFolders } from '@/actions/folder-actions'
 import type { Folder } from '@/types/folder'
+import { toast } from 'react-toastify'
 
 interface TreeNodeProps {
   folder: Folder
@@ -65,6 +66,7 @@ function TreeNode({ folder, allFolders, level, onFolderUpdate }: TreeNodeProps) 
       console.error('Failed to delete folder:', error)
     } finally {
       setIsSubmitting(false)
+      toast.success("Deleted successfully")
     }
   }
 
@@ -83,6 +85,7 @@ function TreeNode({ folder, allFolders, level, onFolderUpdate }: TreeNodeProps) 
       console.error('Failed to create subfolder:', error)
     } finally {
       setIsSubmitting(false)
+      toast.success("Created successfully")
     }
   }
 
@@ -221,6 +224,7 @@ export function TreeView({ initialFolders }: TreeViewProps) {
       console.error('Failed to create folder:', error)
     } finally {
       setIsSubmitting(false)
+      toast.success("Created successfully")
     }
   }
 
